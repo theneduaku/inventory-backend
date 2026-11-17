@@ -1,47 +1,58 @@
 import { ConflictException, Injectable } from "@nestjs/common";
+import { CreateUserDTO } from "./dto/signup.dto";
+import { UserDTO } from "../user/dto/user.dto";
+import * as bcrypt from "bcrypt"
 
 @Injectable()
 export class AuthService {
-
-    private readonly users = [{
-        id: 1,
-        email: 'duruakux@gmail.com',
-        name: 'duruaku chinedu',
-        password: 'test123'
-    },
-    {
-        id: 2,
-        email: 'amaka@gmail.com',
-        name: 'amaka ugule',
-        password: 'test123'
-    }
-
+    private readonly users: UserDTO[] = [
+        {
+            id: 'an1',
+            name: 'duruaku chinedu',
+            email: 'duruakux@gmail.com',
+            password: 'bcrypthash1'
+        },
+        {
+            id: 'an2',
+            name: 'amaka ugi',
+            email: 'amaka@gmail.com',
+            password: 'bcrypthash2'
+        }
     ]
 
 
-    async findByEmail(email: string) {
+    async findOneByEmail(email: string) {
         return this.users.find((data) => data.email === email)
     }
 
-    async create(data: { email: string, name: string, password: string }) {
-        const isExisting = await this.findByEmail(data.email)
+    async create(data: CreateUserDTO) {
+        console.log('Signup reached:', data.email);
 
-        if (isExisting) {
-            throw new ConflictException('Email address already exist')
+        const user = await this.findOneByEmail(data.email);
+
+        console.log('Existing user found:', Boolean(user));
+
+        if (user) {
+            throw new ConflictException('Email already exists');
         }
+
+        const saltRound = 12;
+        const hashedPassword = await bcrypt.hash(data.password, saltRound);
 
         const newUser = {
             ...data,
-            id: this.users.length + 1
-        }
+            password: hashedPassword,
+            id: `an${this.users.length + 1}`
+        };
 
-        this.users.push(newUser)
+        this.users.push(newUser);
+
+        //send email service
 
         return {
             message: 'User created successfully',
-            success: true,
+            status: true,
             user: {
-                id: newUser.id,
                 email: newUser.email
             }
         };
